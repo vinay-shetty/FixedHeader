@@ -22,6 +22,8 @@
  * For details please refer to: http://www.datatables.net
  */
 
+const scrollArea = () => $(".scrollArea");
+
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
@@ -33,7 +35,7 @@
 		// CommonJS
 		module.exports = function (root, $) {
 			if ( ! root ) {
-				root = window;
+				root = scrollArea()[0];
 			}
 
 			if ( ! $ || ! $.fn.dataTable ) {
@@ -67,7 +69,7 @@ var FixedHeader = function ( dt, config ) {
 
 	dt = new DataTable.Api( dt );
 
-	this.c = $.extend( true, {}, FixedHeader.defaults, config );
+	this.c = $.extend( true, {}, {...FixedHeader.defaults, headerOffset: scrollArea()[0].offsetTop}, config );
 
 	this.s = {
 		dt: dt,
@@ -80,7 +82,7 @@ var FixedHeader = function ( dt, config ) {
 			left: 0,
 			tfootHeight: 0,
 			theadHeight: 0,
-			windowHeight: $(window).height(),
+			windowHeight: scrollArea().height(),
 			visible: true
 		},
 		headerMode: null,
@@ -120,7 +122,6 @@ var FixedHeader = function ( dt, config ) {
 	}
 
 	dtSettings._fixedHeader = this;
-
 	this._constructor();
 };
 
@@ -140,7 +141,7 @@ $.extend( FixedHeader.prototype, {
 	 */
 	destroy: function () {
 		this.s.dt.off( '.dtfc' );
-		$(window).off( this.s.namespace );
+		scrollArea().off( this.s.namespace );
 
 		if ( this.c.header ) {
 			this._modeChange( 'in-place', 'header', true );
@@ -173,9 +174,9 @@ $.extend( FixedHeader.prototype, {
 	{
 		return this.s.enable;
 	},
-	
+
 	/**
-	 * Set header offset 
+	 * Set header offset
 	 *
 	 * @param  {int} new value for headerOffset
 	 */
@@ -185,10 +186,9 @@ $.extend( FixedHeader.prototype, {
 			this.c.headerOffset = offset;
 			this.update();
 		}
-
 		return this.c.headerOffset;
 	},
-	
+
 	/**
 	 * Set footer offset
 	 *
@@ -204,7 +204,7 @@ $.extend( FixedHeader.prototype, {
 		return this.c.footerOffset;
 	},
 
-	
+
 	/**
 	 * Recalculate the position of the fixed elements and force them into place
 	 */
@@ -227,7 +227,7 @@ $.extend( FixedHeader.prototype, {
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Constructor
 	 */
-	
+
 	/**
 	 * FixedHeader constructor - adding the required event listeners and
 	 * simple initialisation
@@ -238,13 +238,12 @@ $.extend( FixedHeader.prototype, {
 	{
 		var that = this;
 		var dt = this.s.dt;
-
-		$(window)
+		scrollArea()
 			.on( 'scroll'+this.s.namespace, function () {
 				that._scroll();
 			} )
 			.on( 'resize'+this.s.namespace, DataTable.util.throttle( function () {
-				that.s.position.windowHeight = $(window).height();
+				that.s.position.windowHeight = scrollArea().height();
 				that.update();
 			}, 50 ) );
 
@@ -397,6 +396,8 @@ $.extend( FixedHeader.prototype, {
 		var position = this.s.position;
 		var lastScrollLeft = this.s.scrollLeft;
 
+    position.left = this.dom.header.host[0].getBoundingClientRect().left;
+
 		if ( itemDom.floating && lastScrollLeft[ item ] !== scrollLeft ) {
 			itemDom.floating.css( 'left', position.left - scrollLeft );
 
@@ -412,7 +413,7 @@ $.extend( FixedHeader.prototype, {
 	 * * `in` - Floating over the DataTable
 	 * * `below` - (Header only) Fixed to the bottom of the table body
 	 * * `above` - (Footer only) Fixed to the top of the table body
-	 * 
+	 *
 	 * @param  {string}  mode        Mode that the item should be shown in
 	 * @param  {string}  item        'header' or 'footer'
 	 * @param  {boolean} forceChange Force a redraw of the mode, even if already
@@ -428,7 +429,7 @@ $.extend( FixedHeader.prototype, {
 		// It isn't trivial to add a !important css attribute...
 		var importantWidth = function (w) {
 			itemDom.floating.attr('style', function(i,s) {
-				return (s || '') + 'width: '+w+'px !important;';
+				return (s || '') + 'width: '+w+' !important;';
 			});
 		};
 
@@ -438,7 +439,7 @@ $.extend( FixedHeader.prototype, {
 		var focus = $.contains( tablePart[0], document.activeElement ) ?
 			document.activeElement :
 			null;
-		
+
 		if ( focus ) {
 			focus.blur();
 		}
@@ -474,7 +475,7 @@ $.extend( FixedHeader.prototype, {
 				.css( item === 'header' ? 'top' : 'bottom', this.c[item+'Offset'] )
 				.css( 'left', position.left+'px' );
 
-			importantWidth(position.width);
+			importantWidth('inherit');
 
 			if ( item === 'footer' ) {
 				itemDom.floating.css( 'top', '' );
@@ -567,8 +568,8 @@ $.extend( FixedHeader.prototype, {
 	 */
 	_scroll: function ( forceChange )
 	{
-		var windowTop = $(document).scrollTop();
-		var windowLeft = $(document).scrollLeft();
+		var windowTop = scrollArea().scrollTop();
+		var windowLeft = scrollArea().scrollLeft();
 		var position = this.s.position;
 		var headerMode, footerMode;
 
